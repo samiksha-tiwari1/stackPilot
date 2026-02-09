@@ -39,3 +39,33 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    const workspaceId = await getWorkspace();
+
+    if (!status) {
+      return NextResponse.json(
+        { error: "Status is required for bulk delete" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.task.deleteMany({
+      where: {
+        workspaceId,
+        status: status,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("BULK DELETE ERROR:", err);
+    return NextResponse.json(
+      { error: "Failed to delete tasks" },
+      { status: 500 }
+    );
+  }
+}

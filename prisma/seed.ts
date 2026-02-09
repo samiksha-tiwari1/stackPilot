@@ -89,6 +89,25 @@ async function main() {
 
   console.log("Created docs");
 
+  // Create Notifications
+  await prisma.notification.createMany({
+    data: [
+      {
+        title: "Welcome to StackPilot",
+        message: "Your workspace has been successfully created. Start by creating a new task or document.",
+        type: "success",
+        workspaceId: workspace.id,
+      },
+      {
+        title: "System Update",
+        message: "StackPilot has been updated to version 2.0 with a new premium UI.",
+        type: "info",
+        workspaceId: workspace.id,
+      },
+    ],
+  });
+  console.log("Created notifications");
+
   console.log("Seeding finished.");
 }
 

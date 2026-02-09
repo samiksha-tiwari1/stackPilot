@@ -7,11 +7,26 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+// Enums
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BACKLOG
+  CANCELED
+}
+
 model User {
-  id         String   @id @default(cuid())
-  name       String?
-  email      String   @unique
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  createdAt DateTime @default(now())
 
   workspaces WorkspaceMember[]
 }
@@ -20,22 +35,30 @@ model Workspace {
   id        String   @id @default(cuid())
   name      String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   members WorkspaceMember[]
   docs    Doc[]
   tasks   Task[]
   logs    AgentLog[]
+  notifications Notification[]
+
+  @@index([name])
 }
 
 model WorkspaceMember {
   id          String   @id @default(cuid())
-  role        String
-
-  user        User     @relation(fields: [userId], references: [id])
+  role        String   @default("MEMBER") // Keeping String for now to avoid migration issues with existing data if any, or mapped to Enum if possible. SQLite doesn't support Enums natively, Prisma handles it. I'll use String for SQLite compatibility safety or just map it. Prisma executes enums in SQLite as strings anyway.
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@unique([userId, workspaceId])
 }
 
 model Doc {
@@ -43,20 +66,27 @@ model Doc {
   title       String
   content     String
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
+
+  @@index([workspaceId])
 }
 
 model Task {
   id          String   @id @default(cuid())
   title       String
-  status      String
+  status      String   @default("todo") 
   assignee    String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
+
+  @@index([workspaceId])
+  @@index([status])
 }
 
 model AgentLog {
@@ -65,6 +95,23 @@ model AgentLog {
   message     String
   createdAt   DateTime @default(now())
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
+
+  @@index([workspaceId])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  type        String   @default("info")
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  @@index([workspaceId])
+  @@index([read])
 }
