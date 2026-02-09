@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id         String   @id @default(cuid())
+  name       String?
+  email      String   @unique
+  createdAt  DateTime @default(now())
+
+  workspaces WorkspaceMember[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  members WorkspaceMember[]
+  docs    Doc[]
+  tasks   Task[]
+  logs    AgentLog[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  role        String
+
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+}
+
+model Doc {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  status      String
+  assignee    String?
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+}
+
+model AgentLog {
+  id          String   @id @default(cuid())
+  agent       String
+  message     String
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+}

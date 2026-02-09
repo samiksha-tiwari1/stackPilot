@@ -1,26 +1,80 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ---------------- BASE LAYER ---------------- */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    --background: 0 0% 98%;
+    --foreground: 240 6% 10%;
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 10%;
+
+    --primary: 234 89% 63%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 5% 92%;
+    --secondary-foreground: 240 6% 25%;
+
+    --muted: 240 5% 92%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 234 89% 63%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 234 89% 63%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 240 6% 7%;
+    --sidebar-foreground: 240 5% 65%;
+    --sidebar-accent: 240 5% 14%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 240 5% 14%;
+  }
+
+  .dark {
+    --background: 240 6% 7%;
+    --foreground: 240 5% 92%;
+
+    --card: 240 5% 10%;
+    --card-foreground: 240 5% 92%;
+
+    --secondary: 240 5% 14%;
+    --secondary-foreground: 240 5% 65%;
+
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 4% 46%;
+
+    --border: 240 5% 16%;
+    --input: 240 5% 16%;
+
+    --sidebar-background: 240 6% 5%;
+    --sidebar-foreground: 240 5% 55%;
+    --sidebar-accent: 240 5% 12%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 240 5% 12%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  * {
+    @apply border-border;
+  }
 }
