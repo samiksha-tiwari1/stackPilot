@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { DocActions } from "@/components/DocActions";
 
 type DocPageProps = {
   params: { id: string };
@@ -19,7 +21,18 @@ export default async function DocView(props: {
 
   return (
     <div className="max-w-4xl mx-auto p-10">
-      <h1 className="text-3xl font-semibold mb-6">{doc.title}</h1>
+      <div className="flex justify-between items-start mb-6">
+        <h1 className="text-3xl font-semibold">{doc.title}</h1>
+        <div className="flex gap-2">
+          <Link
+            href={`/docs/${doc.id}/edit`}
+            className="px-4 py-2 text-sm border border-border rounded-md hover:bg-black hover:text-white transition-colors"
+          >
+            Edit
+          </Link>
+          <DocActions id={doc.id} />
+        </div>
+      </div>
       <p className="whitespace-pre-wrap">{doc.content}</p>
     </div>
   );

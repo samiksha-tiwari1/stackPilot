@@ -28,9 +28,13 @@ export default function TasksPage() {
       body: JSON.stringify({ title: newTask }),
     });
 
-    const task = await res.json();
-    setTasks((prev) => [...prev, task]);
-    setNewTask("");
+    if (res.ok) {
+      const task = await res.json();
+      setTasks((prev) => [...prev, task]);
+      setNewTask("");
+    } else {
+      console.error("Failed to create task");
+    }
   };
 
   const deleteTask = async (id: string) => {

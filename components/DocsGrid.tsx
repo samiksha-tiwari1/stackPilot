@@ -28,12 +28,20 @@ export default function DocsGrid({ docs }: { docs: Doc[] }) {
             </p>
           </Link>
 
-          <button
-            onClick={() => deleteDoc(doc.id)}
-            className="absolute top-3 right-3 text-red-500 opacity-0 group-hover:opacity-100"
-          >
-            Delete
-          </button>
+          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Link
+              href={`/docs/${doc.id}/edit`}
+              className="text-sm bg-white border px-2 py-1 rounded hover:bg-gray-100"
+            >
+              Edit
+            </Link>
+            <button
+              onClick={() => deleteDoc(doc.id)}
+              className="text-sm bg-white border px-2 py-1 rounded text-red-500 hover:bg-red-50"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       ))}
     </div>

@@ -9,3 +9,8 @@ export async function GET() {
 
   return NextResponse.json(logs);
 }
+
+export async function DELETE() {
+  await prisma.agentLog.deleteMany();
+  return NextResponse.json({ success: true });
+}

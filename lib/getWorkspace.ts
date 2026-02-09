@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 
 export async function getWorkspace(): Promise<string> {
-  let ws = await prisma.workspace.findFirst();
+  let ws = await prisma.workspace.findFirst({
+    orderBy: { createdAt: "asc" },
+  });
 
   if (!ws) {
     ws = await prisma.workspace.create({
