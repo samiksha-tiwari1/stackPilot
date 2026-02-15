@@ -1,22 +1,14 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { prisma } from "@/lib/prisma";
 
-type Log = {
-  id: string;
-  agent: string;
-  message: string;
-};
-
-// ---------- Types ----------
+/* ---------- Types ---------- */
 type AgentTask = {
   title: string;
   assignee?: string;
 };
 
-// ---------- Type Guards ----------
-function isTaskArray(data: unknown): data is AgentTask[] {
+/* ---------- Type Guard ---------- */
+function isAgentTaskArray(data: unknown): data is AgentTask[] {
   return (
     Array.isArray(data) &&
     data.every(
@@ -29,22 +21,13 @@ function isTaskArray(data: unknown): data is AgentTask[] {
   );
 }
 
-function isSingleTask(data: unknown): data is AgentTask {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "title" in data &&
-    typeof (data as { title: unknown }).title === "string"
-  );
-}
-
-// ---------- Smart Formatter ----------
+/* ---------- Smart Formatter ---------- */
 function formatMessage(message: string): string {
   try {
     const parsed: unknown = JSON.parse(message);
 
-    // 1️ Direct array
-    if (isTaskArray(parsed)) {
+    // CASE 1 → direct array
+    if (isAgentTaskArray(parsed)) {
       return parsed
         .map((t) =>
           t.assignee
@@ -54,21 +37,14 @@ function formatMessage(message: string): string {
         .join("\n");
     }
 
-    // 2️ Single object (Planner output)
-    if (isSingleTask(parsed)) {
-      return parsed.assignee
-        ? `• ${parsed.title} → ${parsed.assignee}`
-        : `• ${parsed.title}`;
-    }
-
-    // 3️ Object containing array (Assigner output)
+    // CASE 2 → object containing arrays
     if (typeof parsed === "object" && parsed !== null) {
       const obj = parsed as Record<string, unknown>;
 
       for (const key in obj) {
         const value = obj[key];
 
-        if (isTaskArray(value)) {
+        if (isAgentTaskArray(value)) {
           return value
             .map((t) =>
               t.assignee
@@ -87,40 +63,34 @@ function formatMessage(message: string): string {
   }
 }
 
-export default function ActivityPage() {
-  const [logs, setLogs] = useState<Log[]>([]);
+/* ---------- Fetch Logs ---------- */
+async function getLogs() {
+  const workspace = await prisma.workspace.findFirst();
 
-  useEffect(() => {
-    fetch("/api/logs")
-      .then((r) => r.json())
-      .then(setLogs);
-  }, []);
+  if (!workspace) return [];
 
-  const clearLogs = async () => {
-    if (!confirm("Are you sure you want to clear all activity logs?")) return;
+  return prisma.agentLog.findMany({
+    where: { workspaceId: workspace.id },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+}
 
-    await fetch("/api/logs", { method: "DELETE" });
-    setLogs([]);
-  };
+/* ---------- Page ---------- */
+export default async function AgentsPage() {
+  const logs = await getLogs();
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>AI Activity Feed</CardTitle>
-
-          <button
-            onClick={clearLogs}
-            className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200"
-          >
-            Clear Activity
-          </button>
+        <CardHeader>
+          <CardTitle>AI Actions</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4 text-sm">
           {logs.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              No activity logs.
+            <p className="text-muted-foreground">
+              No AI actions yet.
             </p>
           ) : (
             logs.map((log) => (
@@ -132,7 +102,7 @@ export default function ActivityPage() {
                   {log.agent}
                 </p>
 
-                <p className="whitespace-pre-line leading-relaxed text-sm">
+                <p className="whitespace-pre-line leading-relaxed">
                   {formatMessage(log.message)}
                 </p>
               </div>

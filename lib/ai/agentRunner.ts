@@ -2,39 +2,56 @@ import { plannerAgent } from "./planner";
 import { criticAgent } from "./critic";
 import { assignerAgent } from "./assigner";
 import { summarizerAgent } from "./summarizer";
+import { cleanOutput } from "./cleanOutput";
 import { prisma } from "@/lib/prisma";
 
-export async function runAgents(doc: string) {
-  const workspaceId = "demo-workspace";
+export async function runAgents(
+  plannerDoc: string,
+  criticDoc: string,
+  assignerDoc: string,
+  insightDoc: string,
+  workspaceId: string
+) {
+  // ---------- PLANNER ----------
+  const plan = cleanOutput(await plannerAgent(plannerDoc));
+  console.log("PLANNER OUTPUT:", plan);
 
-  const plan = await plannerAgent(doc);
   await prisma.agentLog.create({
     data: {
       agent: "Planner",
-      message: "Extracted tasks from document",
+      message: plan,
       workspaceId,
     },
   });
 
-  const clean = await criticAgent(plan);
+  // ---------- CRITIC ----------
+  const clean = cleanOutput(await criticAgent(criticDoc));
+  console.log("CRITIC OUTPUT:", clean);
+
   await prisma.agentLog.create({
     data: {
       agent: "Critic",
-      message: "Cleaned and refined tasks",
+      message: clean,
       workspaceId,
     },
   });
 
-  const assigned = await assignerAgent(clean);
+  // ---------- ASSIGNER ----------
+  const assigned = cleanOutput(await assignerAgent(assignerDoc));
+  console.log("ASSIGNER OUTPUT:", assigned);
+
   await prisma.agentLog.create({
     data: {
       agent: "Assigner",
-      message: "Assigned tasks to team members",
+      message: assigned,
       workspaceId,
     },
   });
 
-  const summary = await summarizerAgent(doc);
+  // ---------- INSIGHT ----------
+  const summary = cleanOutput(await summarizerAgent(insightDoc));
+  console.log("SUMMARY OUTPUT:", summary);
+
   await prisma.agentLog.create({
     data: {
       agent: "InsightAI",

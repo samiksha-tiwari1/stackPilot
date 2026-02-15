@@ -31,7 +31,7 @@ async function main() {
       members: {
         create: {
           userId: user.id,
-          role: "admin",
+          role: "Admin",
         },
       },
     },
