@@ -1,122 +1,112 @@
 "use client";
 
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { formatAgentMessage } from "@/lib/ai/formatAgentMessage";
 
+/* ===================================================== */
+/* TYPES */
+/* ===================================================== */
+
+/*
+  Represents a single AI activity log entry
+*/
 type Log = {
   id: string;
   agent: string;
   message: string;
 };
 
-// ---------- Types ----------
-type AgentTask = {
-  title: string;
-  assignee?: string;
-};
-
-// ---------- Type Guards ----------
-function isTaskArray(data: unknown): data is AgentTask[] {
-  return (
-    Array.isArray(data) &&
-    data.every(
-      (item) =>
-        typeof item === "object" &&
-        item !== null &&
-        "title" in item &&
-        typeof (item as { title: unknown }).title === "string"
-    )
-  );
-}
-
-function isSingleTask(data: unknown): data is AgentTask {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "title" in data &&
-    typeof (data as { title: unknown }).title === "string"
-  );
-}
-
-// ---------- Smart Formatter ----------
-function formatMessage(message: string): string {
-  try {
-    const parsed: unknown = JSON.parse(message);
-
-    // 1️ Direct array
-    if (isTaskArray(parsed)) {
-      return parsed
-        .map((t) =>
-          t.assignee
-            ? `• ${t.title} → ${t.assignee}`
-            : `• ${t.title}`
-        )
-        .join("\n");
-    }
-
-    // 2️ Single object (Planner output)
-    if (isSingleTask(parsed)) {
-      return parsed.assignee
-        ? `• ${parsed.title} → ${parsed.assignee}`
-        : `• ${parsed.title}`;
-    }
-
-    // 3️ Object containing array (Assigner output)
-    if (typeof parsed === "object" && parsed !== null) {
-      const obj = parsed as Record<string, unknown>;
-
-      for (const key in obj) {
-        const value = obj[key];
-
-        if (isTaskArray(value)) {
-          return value
-            .map((t) =>
-              t.assignee
-                ? `• ${t.title} → ${t.assignee}`
-                : `• ${t.title}`
-            )
-            .join("\n");
-        }
-      }
-    }
-
-    return message;
-  } catch {
-    // InsightAI plain text
-    return message;
-  }
-}
+/* ===================================================== */
+/* PAGE COMPONENT */
+/* ===================================================== */
 
 export default function ActivityPage() {
+  /*
+    Local state to store activity logs fetched from API
+  */
   const [logs, setLogs] = useState<Log[]>([]);
 
+  /*
+    Fetch logs once when page loads
+  */
   useEffect(() => {
     fetch("/api/logs")
-      .then((r) => r.json())
-      .then(setLogs);
+      .then((res) => res.json())
+      .then((data) => setLogs(data))
+      .catch((err) => {
+        console.error("Failed to fetch activity logs:", err);
+      });
   }, []);
 
+  /*
+    Clear all logs from database
+    Called after confirmation dialog
+  */
   const clearLogs = async () => {
-    if (!confirm("Are you sure you want to clear all activity logs?")) return;
-
-    await fetch("/api/logs", { method: "DELETE" });
-    setLogs([]);
+    try {
+      await fetch("/api/logs", { method: "DELETE" });
+      setLogs([]); // instantly update UI
+    } catch (error) {
+      console.error("Failed to clear logs:", error);
+    }
   };
 
   return (
     <div className="space-y-6">
       <Card>
+        {/* Header Section */}
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>AI Activity Feed</CardTitle>
 
-          <button
-            onClick={clearLogs}
-            className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200"
-          >
-            Clear Activity
-          </button>
+          {/* Custom Confirmation Dialog */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200">
+                Clear Activity
+              </button>
+            </AlertDialogTrigger>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Are you sure you want to clear all activity logs?
+                </AlertDialogTitle>
+              </AlertDialogHeader>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel>
+                  Cancel
+                </AlertDialogCancel>
+
+                <AlertDialogAction
+                  onClick={clearLogs}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardHeader>
 
+        {/* Content Section */}
         <CardContent className="space-y-4 text-sm">
           {logs.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">
@@ -128,12 +118,14 @@ export default function ActivityPage() {
                 key={log.id}
                 className="border rounded-lg p-4 bg-muted/40"
               >
+                {/* Agent Name */}
                 <p className="font-semibold mb-2 text-base">
                   {log.agent}
                 </p>
 
+                {/* Formatted AI Output */}
                 <p className="whitespace-pre-line leading-relaxed text-sm">
-                  {formatMessage(log.message)}
+                  {formatAgentMessage(log.message)}
                 </p>
               </div>
             ))

@@ -2,13 +2,12 @@ import { callOllama } from "./ollama";
 
 export async function assignerAgent(tasks: string) {
   const prompt = `
-You are a tech lead.
+Assign every task to Dev.
 
-Assign each task to "Dev".
+Return JSON:
 
-Return STRICT JSON:
 [
-  { "title": "task", "assignee": "Dev" }
+  { "title": "exact task text", "assignee": "Dev" }
 ]
 
 Tasks:

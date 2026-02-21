@@ -1,10 +1,16 @@
 import { callOllama } from "./ollama";
 
-export async function summarizerAgent(doc: string) {
+export async function summarizerAgent(tasks: string) {
   const prompt = `
-Summarize this document into a short activity update.
+Summarize these tasks in 2-3 sentences.
 
-${doc}
+Do not invent anything.
+
+If empty, return:
+No activity.
+
+Tasks:
+${tasks}
 `;
 
   return callOllama(prompt);

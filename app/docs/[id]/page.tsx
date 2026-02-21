@@ -2,10 +2,6 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { DocActions } from "@/components/DocActions";
 
-type DocPageProps = {
-  params: { id: string };
-};
-
 export default async function DocView(props: {
   params: Promise<{ id: string }>;
 }) {

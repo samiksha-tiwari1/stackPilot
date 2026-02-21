@@ -1,24 +1,13 @@
 import { callOllama } from "./ollama";
 
-export async function plannerAgent(doc: string) {
+export async function plannerAgent(context: string) {
   const prompt = `
-You are a senior software project planner.
+Extract concrete engineering tasks from the document.
+Return each task as a bullet point.
+Do not explain.
 
-From the document, extract ONLY real, meaningful engineering tasks.
-
-Rules:
-- Tasks must be specific and actionable
-- No generic words like "task", "project", "work"
-- Each task must describe real work
-- 5 to 8 tasks maximum
-
-Return STRICT JSON:
-[
-  { "title": "specific task here" }
-]
-
-Document:
-${doc}
+Context:
+${context}
 `;
 
   return callOllama(prompt);

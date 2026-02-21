@@ -24,7 +24,7 @@ export default function NewDocPage() {
 
       if (!res.ok) throw new Error("Save failed");
 
-      // 🔥 THIS ORDER IS IMPORTANT
+      //  THIS ORDER IS IMPORTANT
       router.refresh();   // re-fetch server components
       router.push("/docs"); // then go back
     } catch (err) {

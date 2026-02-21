@@ -93,12 +93,14 @@ model AgentLog {
   id          String   @id @default(cuid())
   agent       String
   message     String
+  runId       String?   
   createdAt   DateTime @default(now())
 
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
 
   @@index([workspaceId])
+  @@index([runId])    
 }
 
 model Notification {

@@ -1,41 +1,41 @@
+export const dynamic = "force-dynamic";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { formatAgentMessage } from "@/lib/ai/formatAgentMessage";
 
-/* ===================================================== */
-/* FETCH LATEST COUNCIL RUN */
-/* ===================================================== */
+/*
+  Fetch the latest AI council execution using runId.
+
+  Instead of guessing by timestamps,
+  we fetch the newest log with a non-null runId
+  and then fetch all logs that share that runId.
+*/
 
 async function getAgentLogs() {
   const workspace = await prisma.workspace.findFirst();
 
   if (!workspace) return [];
 
-  // latest log = newest AI run
+  // Get the most recent log that has a runId
   const latestLog = await prisma.agentLog.findFirst({
-    where: { workspaceId: workspace.id },
+    where: {
+      workspaceId: workspace.id,
+      runId: { not: null },
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  if (!latestLog) return [];
+  if (!latestLog || !latestLog.runId) return [];
 
-  // group logs from same execution window (10 sec)
-  const since = new Date(latestLog.createdAt.getTime() - 10000);
-
+  // Fetch all logs belonging to the same execution
   return prisma.agentLog.findMany({
     where: {
       workspaceId: workspace.id,
-      createdAt: {
-        gte: since,
-      },
+      runId: latestLog.runId,
     },
     orderBy: { createdAt: "asc" },
   });
 }
-
-/* ===================================================== */
-/* PAGE */
-/* ===================================================== */
 
 export default async function CouncilPage() {
   const logs = await getAgentLogs();

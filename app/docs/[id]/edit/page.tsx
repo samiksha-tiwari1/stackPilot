@@ -1,9 +1,15 @@
-
 "use client";
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+
+/* Added proper Doc type */
+type Doc = {
+    id: string;
+    title: string;
+    content: string;
+};
 
 export default function EditDocPage(props: { params: Promise<{ id: string }> }) {
     const params = use(props.params);
@@ -16,8 +22,8 @@ export default function EditDocPage(props: { params: Promise<{ id: string }> }) 
     useEffect(() => {
         fetch(`/api/docs`)
             .then((res) => res.json())
-            .then((docs) => {
-                const doc = docs.find((d: any) => d.id === params.id);
+            .then((docs: Doc[]) => {   // ← typed properly
+                const doc = docs.find((d) => d.id === params.id);  // ← removed any
                 if (doc) {
                     setTitle(doc.title);
                     setContent(doc.content);

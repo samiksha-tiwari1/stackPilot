@@ -2,79 +2,73 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { runAgents } from "@/lib/ai/agentRunner";
 
-function tasksToDoc(
-  tasks: { title: string; assignee: string | null }[]
+/* ===================================================== */
+/* Convert Documents → Structured Text                  */
+/* ===================================================== */
+
+function docsToText(
+  docs: {
+    title: string;
+    content: string;
+  }[]
 ) {
-  return tasks
+  if (!docs.length) return "No documents.";
+
+  return docs
     .map(
-      (t) =>
-        `- ${t.title}${t.assignee ? ` (assigned to ${t.assignee})` : ""}`
+      (d) =>
+        `Document: ${d.title}\n${d.content}\n`
     )
     .join("\n");
 }
 
+/* ===================================================== */
+/* POST: Run AI Council                                 */
+/* ===================================================== */
+
 export async function POST() {
   try {
-    const workspace = await prisma.workspace.findFirst();
+    /* 1. Get latest workspace */
+    const workspace = await prisma.workspace.findFirst({
+      orderBy: { createdAt: "desc" },
+    });
 
     if (!workspace) {
       return NextResponse.json(
-        { error: "No workspace" },
+        { error: "No workspace found." },
         { status: 404 }
       );
     }
 
-    // -------- PLANNER (TODO only) --------
-    const plannerTasks = await prisma.task.findMany({
-      where: {
-        workspaceId: workspace.id,
-        status: "todo",
-      },
+    console.log("Using Workspace:", workspace.id);
+
+    /* 2. Fetch recent documents only */
+    const docs = await prisma.doc.findMany({
+      where: { workspaceId: workspace.id },
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 3,
     });
 
-    // -------- CRITIC (IN_PROGRESS only) --------
-    const criticTasks = await prisma.task.findMany({
-      where: {
-        workspaceId: workspace.id,
-        status: "in_progress",
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    });
+    console.log("DOCS:", docs.map((d) => d.title));
 
-    // -------- ASSIGNER (ALL TASKS) --------
-    const assignerTasks = await prisma.task.findMany({
-      where: {
-        workspaceId: workspace.id,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    /* 3. Build document-only context */
+    const documentContext = `
+Workspace: ${workspace.name}
 
-    // -------- INSIGHT (ALL TASKS) --------
-    const insightTasks = assignerTasks;
+===== DOCUMENTS =====
+${docsToText(docs)}
+`;
 
-    // build role docs
-    const plannerDoc = tasksToDoc(plannerTasks);
-    const criticDoc = tasksToDoc(criticTasks);
-    const assignerDoc = tasksToDoc(assignerTasks);
-    const insightDoc = tasksToDoc(insightTasks);
-
-    // run agents with separate contexts
-    await runAgents(
-      plannerDoc,
-      criticDoc,
-      assignerDoc,
-      insightDoc,
-      workspace.id
-    );
+    /* 4. Run pipeline */
+    await runAgents(documentContext, workspace.id);
 
     return NextResponse.json({ success: true });
+
   } catch (error) {
-    console.error(error);
+    console.error("Run Council Error:", error);
+
     return NextResponse.json(
-      { error: "Failed" },
+      { error: "Failed to run council." },
       { status: 500 }
     );
   }

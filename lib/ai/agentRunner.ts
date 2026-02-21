@@ -1,64 +1,126 @@
 import { plannerAgent } from "./planner";
-import { criticAgent } from "./critic";
-import { assignerAgent } from "./assigner";
 import { summarizerAgent } from "./summarizer";
-import { cleanOutput } from "./cleanOutput";
+import { criticAgent } from "./critic";
 import { prisma } from "@/lib/prisma";
+import { randomUUID } from "crypto";
+
+/* ===================================================== */
+/* Helpers                                               */
+/* ===================================================== */
+
+function parseBullets(text: string) {
+  return text
+    .split("\n")
+    .map(line => line.replace(/^[-•]\s*/, "").trim())
+    .filter(Boolean)
+    .map(title => ({ title }));
+}
+
+function removeDuplicates(tasks: { title: string }[]) {
+  const seen = new Set<string>();
+  return tasks.filter(t => {
+    if (seen.has(t.title)) return false;
+    seen.add(t.title);
+    return true;
+  });
+}
+
+function removeVagueTasks(tasks: { title: string }[]) {
+  const vagueWords = ["improve", "better", "enhance", "handle errors properly"];
+
+  return tasks.filter(t =>
+    !vagueWords.some(word =>
+      t.title.toLowerCase().includes(word)
+    )
+  );
+}
+
+function assignTasks(tasks: { title: string }[]) {
+  return tasks.map(t => ({
+    ...t,
+    assignee: "Dev"
+  }));
+}
+
+/* ===================================================== */
+/* runAgents                                             */
+/* ===================================================== */
 
 export async function runAgents(
-  plannerDoc: string,
-  criticDoc: string,
-  assignerDoc: string,
-  insightDoc: string,
+  context: string,
   workspaceId: string
 ) {
-  // ---------- PLANNER ----------
-  const plan = cleanOutput(await plannerAgent(plannerDoc));
-  console.log("PLANNER OUTPUT:", plan);
+  const runId = randomUUID();
+
+  /* ----------------------------
+     1. PLANNER (AI)
+  ---------------------------- */
+
+  const plannerRaw = await plannerAgent(context);
 
   await prisma.agentLog.create({
     data: {
       agent: "Planner",
-      message: plan,
+      message: plannerRaw,
       workspaceId,
+      runId,
     },
   });
 
-  // ---------- CRITIC ----------
-  const clean = cleanOutput(await criticAgent(criticDoc));
-  console.log("CRITIC OUTPUT:", clean);
+  /* ----------------------------
+     2. System Cleaning (JS)
+  ---------------------------- */
 
-  await prisma.agentLog.create({
-    data: {
-      agent: "Critic",
-      message: clean,
-      workspaceId,
-    },
-  });
+  const parsedTasks = parseBullets(plannerRaw);
+  const uniqueTasks = removeDuplicates(parsedTasks);
+  const filteredTasks = removeVagueTasks(uniqueTasks);
+  const assignedTasks = assignTasks(filteredTasks);
 
-  // ---------- ASSIGNER ----------
-  const assigned = cleanOutput(await assignerAgent(assignerDoc));
-  console.log("ASSIGNER OUTPUT:", assigned);
+  const assignedText = assignedTasks
+    .map(t => `• ${t.title} → ${t.assignee}`)
+    .join("\n");
 
   await prisma.agentLog.create({
     data: {
       agent: "Assigner",
-      message: assigned,
+      message: assignedText,
       workspaceId,
+      runId,
     },
   });
 
-  // ---------- INSIGHT ----------
-  const summary = cleanOutput(await summarizerAgent(insightDoc));
-  console.log("SUMMARY OUTPUT:", summary);
+  /* ----------------------------
+     3. CRITIC (AI Commentary Only)
+  ---------------------------- */
+
+  const criticRaw = await criticAgent(assignedText);
+
+  await prisma.agentLog.create({
+    data: {
+      agent: "Critic",
+      message: criticRaw,
+      workspaceId,
+      runId,
+    },
+  });
+
+  /* ----------------------------
+     4. INSIGHT (AI Summary)
+  ---------------------------- */
+
+  const summaryRaw = await summarizerAgent(assignedText);
 
   await prisma.agentLog.create({
     data: {
       agent: "InsightAI",
-      message: summary,
+      message: summaryRaw,
       workspaceId,
+      runId,
     },
   });
 
-  return { assigned };
+  return {
+    runId,
+    finalTasks: assignedTasks,
+  };
 }

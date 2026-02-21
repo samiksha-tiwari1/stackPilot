@@ -2,16 +2,22 @@ import { callOllama } from "./ollama";
 
 export async function criticAgent(tasks: string) {
   const prompt = `
-You are a strict reviewer.
+You are a senior engineering reviewer.
 
-Remove vague or duplicate tasks.
+Review the task list below.
 
-If a task is generic, delete it.
+Your job:
+- Identify vague tasks
+- Identify duplicates
+- Identify missing technical specificity
+- Suggest improvements
 
-Return STRICT JSON in same format:
-[
-  { "title": "refined task" }
-]
+DO NOT rewrite tasks.
+DO NOT return JSON.
+Return short bullet point feedback only.
+
+If tasks look solid, say:
+"Tasks look well defined."
 
 Tasks:
 ${tasks}
